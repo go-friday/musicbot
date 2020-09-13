@@ -1,0 +1,20 @@
+version: '2'
+volumes:
+    resin-data:
+services:
+  musicbot:
+    build: ./
+    environment:
+      - MOPIDY_HOST=mopidy:8080
+      - SLACK_TOKEN=a
+    depends_on:
+      - mopidy
+  mopidy:
+    build: ./apps/mopidy
+    expose:
+      - "6680"
+      - "8080"
+    volumes:
+      - 'resin-data:/data'
+    restart: always
+    privileged: true

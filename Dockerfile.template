@@ -1,0 +1,32 @@
+FROM balenalib/%%BALENA_MACHINE_NAME%%-alpine-golang:1.14.2-3.11-build as builder
+
+RUN install_packages upx
+
+ENV GO111MODULE=on \
+  CGO_ENABLED=0
+
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+
+# This step is required to create dir vendor
+RUN go mod vendor
+
+RUN go build \
+  -mod=vendor \
+  -o /bin/service \
+  ./cmd/musicbot
+
+RUN strip /bin/service
+RUN upx -q -9 /bin/service
+
+
+FROM balenalib/%%BALENA_MACHINE_NAME%%-alpine:3.12-run
+
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /bin/service /bin/service
+
+ENV PORT 8081
+
+ENTRYPOINT ["/bin/service"]
